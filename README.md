@@ -1,32 +1,34 @@
 # ros2_tracing
 
-[![pipeline status](https://gitlab.com/ros-tracing/ros2_tracing/badges/foxy/pipeline.svg)](https://gitlab.com/ros-tracing/ros2_tracing/commits/foxy)
-[![codecov](https://codecov.io/gl/ros-tracing/ros2_tracing/branch/foxy/graph/badge.svg)](https://codecov.io/gl/ros-tracing/ros2_tracing)
+Tracing tools with perfetto for ROS 2.
 
-Tracing tools for ROS 2.
+Device : RB5 ubuntu2.0
+ROS version: ROS2 Foxy
 
 ## Building
 
-As of Foxy, these instructions also apply to an installation from the Debian packages; it will not work out-of-the-box. Also, note that tracing using `ros2_tracing` is not supported on non-Linux systems.
-
-If LTTng is not found during build, or if the [`TRACETOOLS_DISABLED` option is enabled](#disabling-tracing), then this package will not do anything.
+As of Foxy, these instructions also apply to ubuntu or linux; it will not work out-of-the-box. Also, note that tracing using `ros2_tracing` is not supported on non-Linux systems.
+We use perfetto instead of LTTng to trace ROS 2.
 
 To enable tracing:
 
-1. Install [LTTng](https://lttng.org/docs/v2.11/) (`>=2.11.1`) with the Python bindings to control tracing and read traces:
+1. Install [perfetto](https://github.com/google/perfetto/releases) (`>=v37.0`) to control tracing and read traces:
+
+    [perfetto for linux](./perfetto_tools/perfetto_for_linux.md)
+2. Build ros2_tracing:
     ```
-    $ sudo apt-get update
-    $ sudo apt-get install lttng-tools lttng-modules-dkms liblttng-ust-dev
-    $ sudo apt-get install python3-babeltrace python3-lttng
-    ```
-2. Build (at least up to `rcl` & `rclcpp`):
-    ```
-    $ colcon build
+    mkdir -p /ros-ws/src
+    cd ros-ws/src/
+    git clone ros2_tracing
+    cd ../
+    source /opt/ros/foxy/setup.bash
+    export HOME=/data
+    colcon build --cmake-args -DTRACETOOLS_DISABLED=OFF
     ```
 3. Source and check that tracing is enabled:
     ```
-    $ source ./install/local_setup.bash
-    $ ros2 run tracetools status
+    source ./install/local_setup.bash or ./install/local_setup.sh
+    ros2 run tracetools status
     ```
 
 ### Disabling tracing
@@ -34,7 +36,7 @@ To enable tracing:
 Alternatively, to build and disable tracing, use `TRACETOOLS_DISABLED`:
 
 ```
-$ colcon build --cmake-args " -DTRACETOOLS_DISABLED=ON"
+colcon build --cmake-args " -DTRACETOOLS_DISABLED=ON"
 ```
 
 ## Tracing
@@ -43,33 +45,29 @@ The steps above will not lead to trace data being generated, and thus they will 
 
 ### Trace command
 
-The first option is to use the `ros2 trace` command.
+The first option is to use the `perfetto` command.
 
 ```
-$ ros2 trace
+$ cat /data/linux-arm64/config.txt | perfetto --txt -c - -o /data/linux-arm64/perfetto-trace
 ```
 
-By default, it will enable all ROS tracepoints and a few kernel tracepoints. The trace will be written to `~/.ros/tracing/session-YYYYMMDDHHMMSS`. Run the command with `-h` for more information.
+By default, it will enable all ROS tracepoints and kernel tracepoints. The trace will be written to /data/linux-arm64/perfetto-trace. Run the command with `-h` for more information.
 
-### Launch file trace action
+### Launch perfetto trace example
 
 Another option is to use the `Trace` action in a launch file along with your `Node` action(s). This way, tracing happens when launching the launch file.
 
 ```
-$ ros2 launch tracetools_launch example.launch.py
+$ ros2 ros2 run tracetools perfetto_trace
 ```
 
-See [this example launch file](./tracetools_launch/launch/example.launch.py) for more information.
+See [this example perfetto_trace file](./tracetools/src/perfetto_trace.cpp) for more information.
 
 ## Design
 
 See the [design document](./doc/design_ros_2.md).
 
 ## Packages
-
-### ros2trace
-
-Package containing a `ros2cli` extension to enable tracing.
 
 ### tracetools
 
@@ -79,22 +77,7 @@ This package claims to be in the **Quality Level 1** category, see the [Quality 
 
 See the [API documentation](https://ros-tracing.gitlab.io/ros2_tracing-api/).
 
-### tracetools_launch
-
-Package containing tools to enable tracing through launch files.
-
-### tracetools_read
-
-Package containing tools to read traces.
-
-### tracetools_test
-
-Package containing system tests for `tracetools` and the tools to support them.
-
-### tracetools_trace
-
-Package containing tools to enable tracing.
-
 ## Analysis
 
-See [`tracetools_analysis`](https://gitlab.com/ros-tracing/tracetools_analysis).
+See [`perfetto ui`](https://ui.perfetto.dev/).
+![](doc/img/perfetto_trace_example.png)
