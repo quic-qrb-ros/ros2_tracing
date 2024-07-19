@@ -33,18 +33,29 @@
 #include "tracetools/visibility_control.hpp"
 
 #ifndef TRACETOOLS_DISABLED
+
+#ifdef TRACETOOLS_LTTNG_ENABLED
 /// Call a tracepoint.
 /**
  * This is the preferred method over calling the actual function directly.
  */
-#  define TRACEPOINT(event_name, ...) \
+#define TRACEPOINT(event_name, ...) \
   (ros_trace_ ## event_name)(__VA_ARGS__)
-#  define DECLARE_TRACEPOINT(event_name, ...) \
+#define DECLARE_TRACEPOINT(event_name, ...) \
   TRACETOOLS_PUBLIC void ros_trace_ ## event_name(__VA_ARGS__);
-#else
-#  define TRACEPOINT(event_name, ...) ((void) (0))
-#  define DECLARE_TRACEPOINT(event_name, ...)
 #endif
+
+//#if TRACETOOLS_PERFETTO_ENABLED
+#define TRACEPOINT(event_name, ...) \
+  (ros_trace_ ## event_name)(__VA_ARGS__)
+#define DECLARE_TRACEPOINT(event_name, ...) \
+  TRACETOOLS_PUBLIC void ros_trace_ ## event_name(__VA_ARGS__);
+//#endif
+
+#else
+#define TRACEPOINT(event_name, ...) ((void) (0))
+#define DECLARE_TRACEPOINT(event_name, ...)
+#endif  //TRACETOOLS_DISABLED
 
 #ifdef __cplusplus
 extern "C"
