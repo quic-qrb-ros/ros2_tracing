@@ -23,26 +23,21 @@ endif()
 option(TRACETOOLS_DISABLED "Explicitly disable support for tracing" ${DISABLED_DEFAULT})
 option(TRACETOOLS_NO_RDYNAMIC "Disable export of -rdynamic link flag" OFF)
 option(TRACETOOLS_STATUS_CHECKING_TOOL "Enable the status checking tool" ON)
-option(TRACETOOLS_PERFETTO_TRACING_TOOL "Enable the perfetto tracing tool" ON)
+option(TRACETOOLS_PERFETTO_TRACING_TOOL "Enable the perfetto tracing tool" OFF)
 
 if(NOT TRACETOOLS_DISABLED)
-  # Set TRACETOOLS_LTTNG_ENABLED if we can find lttng-ust
-  find_package(PkgConfig)
-  if(PkgConfig_FOUND)
-    pkg_check_modules(LTTNG lttng-ust)
-    if(LTTNG_FOUND)
-      set(TRACETOOLS_LTTNG_ENABLED FALSE)
-      message("LTTng disable now, use perfetto")
-    endif()
-  endif()
   set(TRACETOOLS_PERFETTO_ENABLED TRUE)
+  set(TRACETOOLS_STATUS_CHECKING_TOOL ON)
+  set(TRACETOOLS_PERFETTO_TRACING_TOOL ON)
   message("Perfetto found: tracing enabled")
-  message (">>> TRACETOOLS_PERFETTO_ENABLED value = ${TRACETOOLS_PERFETTO_ENABLED}")
+  message ("TRACETOOLS_DISABLED = ${TRACETOOLS_DISABLED}")
+  message ("TRACETOOLS_PERFETTO_ENABLED = ${TRACETOOLS_PERFETTO_ENABLED}")
+  message ("TRACETOOLS_STATUS_CHECKING_TOOL = ${TRACETOOLS_STATUS_CHECKING_TOOL}")
+  message ("TRACETOOLS_PERFETTO_TRACING_TOOL = ${TRACETOOLS_PERFETTO_TRACING_TOOL}")
 endif()
 
 # Store configuration variables for runtime use
 #   TRACETOOLS_DISABLED
-#   TRACETOOLS_LTTNG_ENABLED
 #   TRACETOOLS_PERFETTO_ENABLED
 configure_file(include/${PROJECT_NAME}/config.h.in include/${PROJECT_NAME}/config.h)
 
@@ -56,15 +51,7 @@ set(HEADERS
   include/${PROJECT_NAME}/utils.hpp
   include/${PROJECT_NAME}/visibility_control.hpp
 )
-if(TRACETOOLS_LTTNG_ENABLED)
-  # We only need these if we're using LTTng
-  list(APPEND SOURCES
-    src/tp_call.c
-  )
-  list(APPEND HEADERS
-    include/${PROJECT_NAME}/tp_call.h
-  )
-endif()
+
 if(TRACETOOLS_PERFETTO_ENABLED)
   # We only need these if we're using perfetto
   #list(APPEND SOURCES
@@ -72,9 +59,9 @@ if(TRACETOOLS_PERFETTO_ENABLED)
   #)
   list(APPEND HEADERS
     include/${PROJECT_NAME}/perfetto_trace.h
-    include/${PROJECT_NAME}/perfetto.h
+    include/perfetto_sdk/perfetto.h
   )
-  add_library(perfetto_lib SHARED include/${PROJECT_NAME}/perfetto.cc)
+  add_library(perfetto_lib SHARED include/perfetto_sdk/perfetto.cc)
 endif()
 
 # Copy select headers to the actual include/ directory that we will use and export
@@ -87,23 +74,17 @@ foreach(_header ${HEADERS})
 endforeach()
 
 add_library(${PROJECT_NAME} ${SOURCES})
-if(TRACETOOLS_LTTNG_ENABLED)
-  target_link_libraries(${PROJECT_NAME} ${LTTNG_LIBRARIES} dl)
-  # Export -rdynamic for downtream packages to use when calling
-  #   ament_target_dependencies()
-  # which is needed to resolve function addresses to symbols when
-  # using function pointers directly/without std::bind()
-  # (the flag should not be used on Windows, but TRACETOOLS_LTTNG_ENABLED
-  # should never be true on Windows anyway, so there is no need to check)
-  if(NOT TRACETOOLS_NO_RDYNAMIC)
-    target_link_libraries(${PROJECT_NAME} "-rdynamic")
-  endif()
-endif()
+
 if(TRACETOOLS_PERFETTO_ENABLED)
   target_link_libraries(${PROJECT_NAME} perfetto_lib dl)
   if(NOT TRACETOOLS_NO_RDYNAMIC)
     target_link_libraries(${PROJECT_NAME} "-rdynamic")
   endif()
+
+  install(
+    TARGETS perfetto_lib
+    EXPORT ${PROJECT_NAME}_export
+  )
 endif()
 if(WIN32)
   # Causes the visibility macros to use dllexport rather than dllimport
@@ -150,23 +131,9 @@ install(
   DIRECTORY ${PROJECT_BINARY_DIR}/include/
   DESTINATION include
 )
-install(
-  TARGETS perfetto_lib ${PROJECT_NAME}
-  EXPORT ${PROJECT_NAME}_export
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
 
 ament_export_include_directories(include)
-if(TRACETOOLS_LTTNG_ENABLED)
-  ament_export_libraries(${PROJECT_NAME} ${LTTNG_LIBRARIES})
-  # Export -rdynamic for downstream packages using classic CMake variables
-  if(NOT TRACETOOLS_NO_RDYNAMIC)
-    ament_export_link_flags("-rdynamic")
-  endif()
-elseif(TRACETOOLS_PERFETTO_ENABLED)
+if(TRACETOOLS_PERFETTO_ENABLED)
   ament_export_libraries(${PROJECT_NAME} ${PERFETTO_LIBRARIES})
   # Export -rdynamic for downstream packages using classic CMake variables
   if(NOT TRACETOOLS_NO_RDYNAMIC)
@@ -176,20 +143,14 @@ else()
   ament_export_libraries(${PROJECT_NAME})
 endif()
 
-if(BUILD_TESTING)
-  set(ament_cmake_cppcheck_ADDITIONAL_INCLUDE_DIRS ${LTTNG_INCLUDE_DIRS})
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-
-  if(TRACETOOLS_STATUS_CHECKING_TOOL)
-    # Run status tool executable as test and set pass/fail expectation appropriately
-    add_test(test_status_tool status)
-    if(NOT TRACETOOLS_LTTNG_ENABLED)
-      set_tests_properties(test_status_tool PROPERTIES WILL_FAIL TRUE)
-    endif()
-  endif()
-
-endif()
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}_export
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
 ament_package()
 

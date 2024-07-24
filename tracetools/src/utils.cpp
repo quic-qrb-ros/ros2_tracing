@@ -14,7 +14,7 @@
 
 #include "tracetools/config.h"
 
-#if defined TRACETOOLS_LTTNG_ENABLED || defined TRACETOOLS_PERFETTO_ENABLED
+#if defined TRACETOOLS_PERFETTO_ENABLED
 #include <dlfcn.h>
 #include <cxxabi.h>
 #endif
@@ -22,7 +22,7 @@
 
 const char * _demangle_symbol(const char * mangled)
 {
-#if defined TRACETOOLS_LTTNG_ENABLED || defined TRACETOOLS_PERFETTO_ENABLED
+#if defined TRACETOOLS_PERFETTO_ENABLED
   char * demangled = nullptr;
   int status;
   demangled = abi::__cxa_demangle(mangled, NULL, 0, &status);
@@ -37,7 +37,7 @@ const char * _demangle_symbol(const char * mangled)
 
 const char * _get_symbol_funcptr(void * funcptr)
 {
-#if defined TRACETOOLS_LTTNG_ENABLED || defined TRACETOOLS_PERFETTO_ENABLED
+#if defined TRACETOOLS_PERFETTO_ENABLED
   Dl_info info;
   if (dladdr(funcptr, &info) == 0) {
     return SYMBOL_UNKNOWN;

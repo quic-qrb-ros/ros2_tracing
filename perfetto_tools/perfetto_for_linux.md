@@ -6,7 +6,7 @@ Due to Perfetto's service-based architecture, in order to capture a trace, the t
 ### Download perfetto binaries
 1. download perfetto from:
 https://github.com/google/perfetto/releases and you need copy below files to perfetto release directory:
-[config.txt](./config.txt)
+[trace_config.txt](./trace_config.txt)
 [traced.service](./traced.service)
 [traced-probes.service](./traced-probes.service)
 
@@ -15,10 +15,10 @@ https://github.com/google/perfetto/releases and you need copy below files to per
 ### Capturing a perfetto trace
 #### Recording a trace through the Perfetto UI
 1. Navigate to  https://ui.perfetto.dev/#!/record/instructions and select Record new trace from the left menu. From this page, select and turn on the data sources you want to include in the trace. 
-2. Copy the settings to a TXT file and name it like this: config.txt
+2. Copy the settings to a TXT file and name it like this: trace_config.txt
 3. you can use perfetto with sdk as follows :
 ```
-adb push ./config.txt /data/linux-arm64/
+adb push ./trace_config.txt /data/linux-arm64/
 adb shell
 
 #use below command for LE
@@ -33,6 +33,8 @@ chown traced:traced /run/perfetto
 systemctl start traced.service
 systemctl start traced-probes.service
 #######################################
+
+
 #use below command for LU
 #######################################
 adduser --home /nonexistent --quiet --system --no-create-home --group traced

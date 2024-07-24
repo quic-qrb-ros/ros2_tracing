@@ -21,7 +21,7 @@
 #undef TRACEPOINT_INCLUDE
 #define TRACEPOINT_INCLUDE "tracetools/perfetto_trace.h"
 
-#include "tracetools/perfetto.h"
+#include "perfetto_sdk/perfetto.h"
 
 PERFETTO_DEFINE_CATEGORIES(
     PERFETTO_CATEGORY(ros2));

@@ -34,23 +34,12 @@
 
 #ifndef TRACETOOLS_DISABLED
 
-#ifdef TRACETOOLS_LTTNG_ENABLED
-/// Call a tracepoint.
-/**
- * This is the preferred method over calling the actual function directly.
- */
+#ifdef TRACETOOLS_PERFETTO_ENABLED
 #define TRACEPOINT(event_name, ...) \
   (ros_trace_ ## event_name)(__VA_ARGS__)
 #define DECLARE_TRACEPOINT(event_name, ...) \
   TRACETOOLS_PUBLIC void ros_trace_ ## event_name(__VA_ARGS__);
 #endif
-
-//#if TRACETOOLS_PERFETTO_ENABLED
-#define TRACEPOINT(event_name, ...) \
-  (ros_trace_ ## event_name)(__VA_ARGS__)
-#define DECLARE_TRACEPOINT(event_name, ...) \
-  TRACETOOLS_PUBLIC void ros_trace_ ## event_name(__VA_ARGS__);
-//#endif
 
 #else
 #define TRACEPOINT(event_name, ...) ((void) (0))

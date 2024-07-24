@@ -3,100 +3,33 @@
 Design document for ROS 2 tracing, instrumentation, and analysis effort.
 
 **Table of contents**
-1. [Introduction](#introduction)
-2. [Goals and requirements](#goals-and-requirements)
-    1. [Goals](#goals)
-    2. [Requirements: instrumentation](#requirements-instrumentation)
-    3. [Requirements: analysis & visualization](#requirements-analysis-visualization)
-    4. [Tools/accessibility](#toolsaccessibility)
-3. [Instrumentation design](#instrumentation-design)
-    1. [Flow description](#flow-description)
-        1. [Process creation](#process-creation)
-        2. [Node/component creation](#nodecomponent-creation)
-        3. [Publisher creation](#publisher-creation)
-        4. [Subscription creation](#subscription-creation)
-        5. [Executors](#executors)
-        6. [Subscription callbacks](#subscription-callbacks)
-        7. [Message publishing](#message-publishing)
-        8. [Service creation](#service-creation)
-        9. [Service callbacks](#service-callbacks)
-        10. [Client creation](#client-creation)
-        11. [Client request](#client-request)
-        12. [Timer creation](#timer-creation)
-        13. [Timer callbacks](#timer-callbacks)
-4. [Design & implementation notes](#design-implementation-notes)
-    1. [Targeted tools/dependencies](#targeted-toolsdependencies)
-    2. [Design](#design)
-5. [Architecture](#architecture)
-    1. [Timeline](#timeline)
-    2. [Notes on client libraries](#notes-on-client-libraries)
-    3. [ROS 1/2 compatibility](#ros-12-compatibility)
-6. [Tools packages](#tools-packages)
-7. [Analysis](#analysis)
-    1. [Analysis design](#analysis-design)
-    1. [Analysis architecture](#analysis-architecture)
+- [ROS 2 tracing](#ros-2-tracing)
+  - [Introduction](#introduction)
+    - [Flow description](#flow-description)
+      - [Process creation](#process-creation)
+      - [Node/component creation](#nodecomponent-creation)
+      - [Publisher creation](#publisher-creation)
+      - [Subscription creation](#subscription-creation)
+      - [Executors](#executors)
+      - [Subscription callbacks](#subscription-callbacks)
+      - [Message publishing](#message-publishing)
+      - [Service creation](#service-creation)
+      - [Service callbacks](#service-callbacks)
+      - [Client creation](#client-creation)
+      - [Client request](#client-request)
+      - [Timer creation](#timer-creation)
+      - [Timer callbacks](#timer-callbacks)
+  - [Design \& implementation notes](#design--implementation-notes)
+    - [Targeted tools/dependencies](#targeted-toolsdependencies)
+    - [Design](#design)
+  - [Architecture](#architecture)
+    - [Notes on client libraries](#notes-on-client-libraries)
+  - [Analysis](#analysis)
 
 ## Introduction
 
-Tracing allows to record run-time data from a system, both for system data (e.g., when a process
-is being scheduled, or when I/O occurs) and for user-defined data. This package helps with
-user-defined trace data within the ROS 2 framework, e.g. to trace when messages arrive,
-when timers fire, when callbacks are being run, etc.
-
-## Goals and requirements
-
-### Goals
-
-1. Provide low-overhead tools and resources for robotics software development based on ROS 2.
-2. Make tracing easier to use with ROS.
-
-### Requirements: instrumentation
-
-Instrumentation should be built around the main uses of ROS 2, and should include relevant information:
-
-1. Overall
-    1. When creating a publisher/subscriber/service/client/etc., appropriate references should be kept in order to correlate with other tracepoints related to the same instance.
-1. Publishers & subscriptions
-    1. When creating a publisher/subscription, the effective topic name should be included (i.e. including namespace and after remapping).
-    2. When publishing a message, some sort of message identifier should be included in the tracepoint so it can be tracked through DDS up to the subscriber's side.
-3. Callbacks (subscription, service, client, timer)
-    1. Callback function symbol should be included, whenever possible.
-    2. Information about callback execution (e.g. start & end) should be available.
-4. Timers
-    1. Information about the period should be available.
-5. Executors
-    1. Information about spin cycles & periods should be available.
-6. Others
-    1. Provide generic tracepoints for user code.
-
-### Requirements: analysis & visualization
-
-Analyses process trace data. They should be general enough to be useful for different use-cases, e.g.:
-
-* Callback duration
-* Time between callbacks (between two callback starts and/or a callback end and a start)
-* Message age (as the difference between processing time and message timestamp)
-* Message size
-* Memory usage
-* Execution time/proportion accross a process' nodes/components
-* Interruptions (noting that these may be more useful as time-based metrics instead of overall statistics):
-    * scheduling events during a callback
-    * delay between the moment a thread becomes ready and when it's actually scheduled
-    * CPU cycles
-
-with mean, stdev, etc. when applicable.
-
-Generic tracepoints for ROS 2 user code could be applied to a user-provided model for higher-level behaviour statistics and visualization.
-
-### Tools/accessibility
-
-To make tracing ROS 2 more accessible and easier to adopt, we can put effort into integrating LTTng session setup & recording into the ROS 2 launch system and command line interface.
-
-This might include converting existing `tracetools` scripts to more flexible Python scripts, and then plugging that into the launch system and creating a `ros2cli` extension.
-
-## Instrumentation design
-
-This section includes information about ROS 2's design & architecture through descriptions of the main execution flows. The instrumentation can then be built around that.
+Perfetto bundles a number of data sources that are able to gather detailed performance data from different system interfaces.
+Now we use this trace tool to profil ROS2 event from rclcpp,rcl and rmw.
 
 ### Flow description
 
@@ -511,31 +444,26 @@ sequenceDiagram
 
 The targeted tools or dependencies are:
 
-* LTTng for tracing
-* pandas and Jupyter for analysis & visualization
+* perfetto for tracing
+* perfetto UI for analysis & visualization
 
 ### Design
 
-The plan is to use LTTng with a ROS wrapper package like `tracetools` for ROS 1. The suggested setup is:
+Perfetto is a production-grade open-source stack for performance instrumentation and trace analysis. It offers services and libraries for recording system-level and app-level traces, native + java heap profiling, a library for analyzing traces using SQL and a web-based UI to visualize and explore multi-GB traces.
+We use perfetto instead of LTTng to trace ROS 2. The suggested setup is:
 
-* a tracing package (e.g. `tracetools`) wraps calls to LTTng
+* a tracing package (e.g. `tracetools`) wraps calls to perfetto SDK
 * ROS 2 is instrumented with calls to the tracing package, therefore it becomes a dependency and ships with the core stack
 * by default, the tracing package's functions are empty -- they do not do anything
 * if users wants to enable tracing, they need to
-    * install LTTng
+    * Setup perfetto enviorment
     * compile the tracing package from source, setting the right compile flag(s)
     * overlay it on top of their ROS 2 installation
-* use other package(s) for analysis and visualization
+* use perfetto UI for analysis and visualization
 
 ## Architecture
 
-![](img/tracing_architecture.png)
-
-### Timeline
-
-The first goal is to statically instrument ROS 2, aiming for it to be in the ROS 2 E-turtle release (Nov 2019).
-
-This includes transposing the existing ROS 1 instrumentation to ROS 2, wherever applicable. This step may not include instrumenting DDS implementations, and thus may be limited to the layer(s) right before `rmw`.
+![](img/tracing_architecture_for_perfetto.png)
 
 ### Notes on client libraries
 
@@ -547,180 +475,7 @@ This means that some instrumentation work will have to be re-done for every clie
 
 This effort should first focus on `rcl` and `rclcpp` , but `rclpy` should eventually be added and supported.
 
-### ROS 1/2 compatibility
-
-We could look into making analyses work on both ROS 1 and ROS 2, through a common instrumentation interface (or other abstraction).
-
-## Tools packages
-
-* `tracetools_trace`
-    * wraps the LTTng Python bindings to setup and start a tracing session
-    * exposes simplified setup functions with default values
-    * provides an example `trace` entrypoint for tracing
-        * `$ ros2 run tracetools_trace trace`
-* `ros2trace`
-    * provides a `ros2cli` extension
-    `$ ros2 trace`
-        * uses `tracetools_trace` functions
-* `tracetools_launch`
-    * provides a `Trace` action for `launch`
-        * uses `tracetools_trace` functions
-* `tracetools_read`
-    * wraps the babeltrace Python bindings to read CTF traces
-* `tracetools_test`
-    * provides a `TraceTestCase` class extending `unittest.TestCase`
-        * uses the `Trace` action with `launch` to trace the test nodes
-        * provides trace-specific utility functions (e.g. assert)
-* `tracetools_analysis`
-    * uses `tracetools_read` to read traces
-    * provides utilities to:
-        * convert CTF traces to pickle files
-        * wrap trace events in Python `dict`
-        * handle and process trace events to gather data
-* `ros2trace_analysis`
-    * provides a `ros2cli` extension with verbs
-        * `$ ros2 trace-analysis`
-    * uses/exposes `tracetools_analysis` functions
-        * `$ ros2 trace-analysis convert`
-        * `$ ros2 trace-analysis process`
-
-```plantuml
-@startuml
-
-interface babeltrace
-hide babeltrace fields
-hide babeltrace methods
-hide babeltrace circle
-interface lttng
-hide lttng fields
-hide lttng methods
-hide lttng circle
-interface pandas
-hide pandas fields
-hide pandas methods
-hide pandas circle
-interface bokeh
-hide bokeh fields
-hide bokeh methods
-hide bokeh circle
-package <i>ros2cli</i> as ros2cli <<Rectangle>> #DADADA {
-}
-package <i>launch</i> as launch <<Rectangle>> #DADADA {
-}
-lttng -[hidden] babeltrace
-babeltrace -[hidden] pandas
-pandas -[hidden] bokeh
-ros2cli -[hidden] launch
-launch -[hidden] lttng
-
-package tracetools_trace <<Rectangle>> {
-}
-lttng <-- tracetools_trace
-
-package ros2trace <<Rectangle>> {
-}
-package tracetools_launch <<Rectangle>> {
-}
-ros2cli <|-- ros2trace
-tracetools_trace <-- ros2trace
-launch <|-- tracetools_launch
-tracetools_trace <-- tracetools_launch
-
-package tracetools_read <<Rectangle>> {
-}
-babeltrace <-- tracetools_read
-
-package tracetools_test <<Rectangle>> {
-}
-tracetools_launch <-- tracetools_test
-tracetools_read <-- tracetools_test
-
-package tracetools_analysis <<Rectangle>> {
-}
-tracetools_read <-- tracetools_analysis
-pandas <--- tracetools_analysis
-bokeh <--- tracetools_analysis
-
-package ros2trace_analysis <<Rectangle>> {
-}
-ros2cli <|-- ros2trace_analysis
-tracetools_analysis <-- ros2trace_analysis
-
-@enduml
-```
-
 ## Analysis
+We can now explore the captured trace visually by using a dedicated web-based UI.
 
-### Analysis design
-
-Generally, for a given trace data analysis objective, the following classes are extended: `EventHandler`, `DataModel`, and `DataModelUtil`.
-
-A user/developer can implement an `EventHandler`, which defines callbacks for specific events. Those callbacks get called by the `Processor`, and end up putting slightly-processed data into a `DataModel`, which is a data container that uses `pandas` `DataFrame`s.
-
-Meaningful data can be extracted from the `DataModel`. However, a `DataModelUtil` can provide common utility functions so that users don't have to re-write them. This meaningful output data can then be presented through a Jupyter notebook (e.g. plots) or a normal Python script (e.g. tables).
-
-### Analysis architecture
-
-With profiling as an example implementation:
-
-```plantuml
-@startuml
-
-class Processor {
- +process(events)
- -_process_event(event)
- -_expand_dependencies(initial_handlers): list {static}
- -_get_handler_maps(handlers): multimap {static}
-}
-class DependencySolver {
- +solve(initial_dependants): list
-}
-DependencySolver <-- Processor
-
-abstract class Dependant {
- +dependencies(): list {static}
-}
-abstract class EventHandler {
- +handler_map(): map
- +data(): DataModel
- +process(events) {static}
-}
-class ProfileHandler {
- +_handle_sched_switch(event, metadata)
- +_handle_function_entry(event, metadata)
- +_handle_function_exit(event, metadata)
-}
-Dependant <|-- EventHandler
-EventHandler <|-- ProfileHandler
-Processor o-- EventHandler
-
-abstract class DataModel {
- +print_data() {abstract}
-}
-class ProfileDataModel {
- +times: DataFrame
- +add_duration(tid, depth, name, timestamp, duration)
-}
-DataModel <|-- ProfileDataModel
-ProfileDataModel o-- ProfileHandler
-
-abstract class DataModelUtil {
- +print_data(): DataModel
- +convert_time_columns(df, columns): df {static}
-}
-class ProfileDataModelUtil {
- +get_tids(): list
- +get_function_duration_data(tid): DataFrames
-}
-DataModelUtil <|-- ProfileDataModelUtil
-DataModelUtil o-- DataModel
-
-class Notebook {
-}
-Notebook --> ProfileHandler
-Notebook --> ProfileDataModelUtil
-Notebook --> Processor
-hide Notebook circle
-
-@enduml
-```
+https://ui.perfetto.dev
