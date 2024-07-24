@@ -45,7 +45,7 @@ systemctl start traced.service
 systemctl start traced-probes.service
 #######################################
  
-cat /data/linux-arm64/config.txt | perfetto --txt -c - -o /data/linux-arm64/perfetto-trace
+cat /data/linux-arm64/trace_config.txt | perfetto --txt -c - -o /data/linux-arm64/perfetto-trace
 ```
 ## Visualizing the trace
 We can now explore the captured trace visually by using a dedicated web-based UI.

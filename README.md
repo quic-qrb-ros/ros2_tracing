@@ -18,12 +18,12 @@ To enable tracing:
 2. Build ros2_tracing:
     ```
     mkdir -p /ros-ws/src
-    cd ros-ws/src/
+    cd /ros-ws/src/
     git clone ros2_tracing
     cd ../
     source /opt/ros/foxy/setup.bash
     export HOME=/data
-    colcon build --cmake-args -DTRACETOOLS_DISABLED=OFF
+    colcon build --cmake-args -DTRACETOOLS_DISABLED=OFF --allow-overriding tracetools
     ```
 3. Source and check that tracing is enabled:
     ```
@@ -48,7 +48,7 @@ The steps above will not lead to trace data being generated, and thus they will 
 The first option is to use the `perfetto` command.
 
 ```
-$ cat /data/linux-arm64/config.txt | perfetto --txt -c - -o /data/linux-arm64/perfetto-trace
+$ cat /data/linux-arm64/trace_config.txt | perfetto --txt -c - -o /data/linux-arm64/perfetto-trace
 ```
 
 By default, it will enable all ROS tracepoints and kernel tracepoints. The trace will be written to /data/linux-arm64/perfetto-trace. Run the command with `-h` for more information.
