@@ -42,6 +42,8 @@
  *    2. Up to 10 macro arguments for tracepoints with up to 9 arguments.
  * We can easily support more than 10 macro arguments if needed.
  */
+
+/*
 #  define _GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, NAME, ...) NAME
 
 #  define _TRACEPOINT_NOARGS(event_name) \
@@ -66,7 +68,7 @@
     _DECLARE_TRACEPOINT_ARGS, _DECLARE_TRACEPOINT_ARGS, _DECLARE_TRACEPOINT_ARGS, \
     _DECLARE_TRACEPOINT_ARGS, _DECLARE_TRACEPOINT_ARGS, _DECLARE_TRACEPOINT_ARGS, \
     _DECLARE_TRACEPOINT_NOARGS, shoud_not_be_called_without_any_arguments)
-
+*/
 /// Call a tracepoint.
 /**
  * The first argument is mandatory and should be the tracepoint event name.
@@ -75,13 +77,23 @@
  *
  * This macro currently supports up to 9 tracepoint arguments after the event name.
  */
+ /*
 #  define TRACEPOINT(...) \
   _GET_MACRO_TRACEPOINT(__VA_ARGS__)(__VA_ARGS__)
 #  define DECLARE_TRACEPOINT(...) \
   _GET_MACRO_DECLARE_TRACEPOINT(__VA_ARGS__)(__VA_ARGS__)
+*/
+
+#ifdef TRACETOOLS_PERFETTO_ENABLED
+#define TRACEPOINT(event_name, ...) \
+  (ros_trace_ ## event_name)(__VA_ARGS__)
+#define DECLARE_TRACEPOINT(event_name, ...) \
+  TRACETOOLS_PUBLIC void ros_trace_ ## event_name(__VA_ARGS__);
+#endif
+
 #else
-#  define TRACEPOINT(...) ((void) (0))
-#  define DECLARE_TRACEPOINT(...)
+  #define TRACEPOINT(...) ((void) (0))
+  #define DECLARE_TRACEPOINT(...)
 #endif  // TRACETOOLS_DISABLED
 
 #ifdef __cplusplus

@@ -27,8 +27,6 @@
 #if !defined(_TRACETOOLS__TP_CALL_H_) || defined(TRACEPOINT_HEADER_MULTI_READ)
 #define _TRACETOOLS__TP_CALL_H_
 
-#include <lttng/tracepoint.h>
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -409,7 +407,5 @@ TRACEPOINT_EVENT(
 )
 
 #endif  // _TRACETOOLS__TP_CALL_H_
-
-#include <lttng/tracepoint-event.h>
 
 #endif  // TRACETOOLS__TP_CALL_H_
