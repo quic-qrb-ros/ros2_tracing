@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(tracetools)
+project(tracetools VERSION 1.0.0)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -63,6 +63,10 @@ if(TRACETOOLS_PERFETTO_ENABLED)
     include/perfetto_sdk/perfetto.h
   )
   add_library(perfetto_lib SHARED include/perfetto_sdk/perfetto.cc)
+  set_target_properties(perfetto_lib PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION 1
+  )
 endif()
 
 # Copy select headers to the actual include/ directory that we will use and export
